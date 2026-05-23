@@ -41,6 +41,22 @@ export class OrderRouter {
       }
     }
 
+    // Verbose body log so deploying users can see exactly what's being sent.
+    this.log.info(
+      {
+        request: req,
+        ctx: {
+          userId: ctx.userId,
+          brokerAccountId: ctx.brokerAccountId,
+          mode: ctx.mode,
+          strategyId: ctx.strategyId,
+          parentOrderId: ctx.parentOrderId,
+        },
+        idemKey,
+      },
+      'place(): incoming order request',
+    );
+
     // 2. Persist a DRAFT
     const order = await OrderModel.create({
       userId: ctx.userId,
@@ -87,8 +103,16 @@ export class OrderRouter {
 
     // 5. Dispatch
     if (ctx.mode === 'paper') {
+      this.log.info(
+        { orderId: String(order._id), tag: order.tag, body: req },
+        'dispatching → paper simulator',
+      );
       await this.paper.submit(order);
     } else {
+      this.log.info(
+        { orderId: String(order._id), tag: order.tag, broker: ctx.brokerAccountId, body: req },
+        'dispatching → live broker',
+      );
       const adapter = await this.registry.for(ctx.brokerAccountId);
       try {
         const { brokerOrderId } = await adapter.placeOrder(req);
@@ -96,6 +120,10 @@ export class OrderRouter {
         order.status = 'SENT';
         order.statusHistory!.push({ status: 'SENT', at: new Date() });
         await order.save();
+        this.log.info(
+          { orderId: String(order._id), brokerOrderId },
+          'broker accepted order',
+        );
       } catch (err) {
         order.status = 'REJECTED';
         order.statusMessage = err instanceof Error ? err.message : String(err);

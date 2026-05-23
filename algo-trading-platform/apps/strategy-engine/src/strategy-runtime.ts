@@ -220,7 +220,11 @@ export class StrategyRuntime {
   private async fireLegs(legs: LegConfig[]): Promise<void> {
     for (const leg of legs) {
       try {
-        const placement = await selectOptionLeg(this.deps.redis, this.strategy, leg);
+        const placement = await selectOptionLeg(
+          { redis: this.deps.redis, pubsub: this.deps.pubsub },
+          this.strategy,
+          leg,
+        );
         if (!placement) {
           this.deps.log.warn({ legId: leg.legId }, 'leg resolution returned no contract');
           continue;

@@ -10,6 +10,7 @@ import { authRoutes } from './routes/auth.js';
 import { brokerRoutes } from './routes/brokers.js';
 import { instrumentRoutes } from './routes/instruments.js';
 import { strategyRoutes } from './routes/strategies.js';
+import { strategyPreviewRoutes } from './routes/strategy-preview.js';
 import { signalRoutes } from './routes/signals.js';
 import { orderRoutes } from './routes/orders.js';
 import { positionRoutes } from './routes/positions.js';
@@ -82,6 +83,7 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(brokerRoutes, { prefix: '/api/v1/brokers' });
   await app.register(instrumentRoutes, { prefix: '/api/v1/instruments' });
   await app.register(strategyRoutes, { prefix: '/api/v1/strategies' });
+  await app.register(strategyPreviewRoutes, { prefix: '/api/v1/strategies' });
   await app.register(signalRoutes, { prefix: '/api/v1/signals' });
   await app.register(orderRoutes, { prefix: '/api/v1/orders' });
   await app.register(positionRoutes, { prefix: '/api/v1/positions' });
