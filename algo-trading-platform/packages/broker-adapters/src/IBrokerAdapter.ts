@@ -2,6 +2,7 @@ import type {
   BrokerCredentials,
   BrokerId,
   BrokerLoginResult,
+  BrokerProfile,
   Candle,
   Funds,
   NormalizedHolding,
@@ -38,6 +39,8 @@ export interface IBrokerAdapter {
   login(creds: BrokerCredentials): Promise<BrokerLoginResult>;
   refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiry: Date }>;
   isTokenValid(creds: BrokerCredentials): Promise<boolean>;
+  /** Pull the connected user's profile; primarily used to verify a fresh connection. */
+  getProfile(): Promise<BrokerProfile>;
 
   // Contract master
   fetchInstruments(): Promise<NormalizedInstrument[]>;

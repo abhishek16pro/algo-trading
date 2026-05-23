@@ -1,47 +1,80 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+type Signal = {
+  _id: string;
+  name: string;
+  description?: string;
+  indicator: string;
+  params?: Record<string, number>;
+  condition: string;
+  compareTo?: { type: string; value?: number; indicator?: string; params?: Record<string, number>; source?: string };
+  timeframe: string;
+  isPublic?: boolean;
+};
+
 export default function SignalsPage() {
-  const { data } = useQuery({
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
     queryKey: ['signals'],
-    queryFn: async () => (await api.get('/signals')).data,
+    queryFn: async () => (await api.get('/signals')).data as Signal[],
   });
-  const templates = useQuery({
-    queryKey: ['signal-templates'],
-    queryFn: async () => (await api.get('/signals/templates')).data,
+  const del = useMutation({
+    mutationFn: async (id: string) => (await api.delete(`/signals/${id}`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['signals'] }),
   });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Signals</h1>
-      <div className="card p-4">
-        <h2 className="font-medium mb-2">My signals</h2>
-        {data?.length === 0 ? (
-          <div className="text-sm text-ink-muted">No saved signals yet.</div>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {data?.map((s: { _id: string; name: string; indicator: string; timeframe: string }) => (
-              <li key={s._id} className="border-t border-white/5 py-2">
-                <span className="font-medium">{s.name}</span>{' '}
-                <span className="text-ink-muted">{s.indicator} · {s.timeframe}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Signals</h1>
+        <Link href="/signals/new" className="btn btn-primary">+ New signal</Link>
       </div>
-      <div className="card p-4">
-        <h2 className="font-medium mb-2">Templates</h2>
-        <ul className="space-y-2 text-sm">
-          {templates.data?.map((t: { name: string; indicator: string; timeframe: string }) => (
-            <li key={t.name} className="border-t border-white/5 py-2">
-              <span className="font-medium">{t.name}</span>{' '}
-              <span className="text-ink-muted">{t.indicator} · {t.timeframe}</span>
-            </li>
-          ))}
-        </ul>
+
+      <p className="text-sm text-ink-muted">
+        Signals are reusable building blocks. Combine them with AND/OR in a strategy&apos;s entry trigger.
+      </p>
+
+      {isLoading && <div className="text-ink-muted">Loading…</div>}
+      {data?.length === 0 && (
+        <div className="card p-8 text-center text-ink-muted">
+          No signals yet. <Link href="/signals/new" className="text-brand">Create one</Link>.
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {data?.map((s) => (
+          <div key={s._id} className="card p-4 flex justify-between items-start">
+            <div>
+              <div className="font-medium">{s.name}</div>
+              <div className="text-xs text-ink-muted mt-0.5">{renderExpression(s)}</div>
+              <div className="text-xs text-ink-muted mt-0.5">timeframe: {s.timeframe}</div>
+            </div>
+            <button onClick={() => del.mutate(s._id)} className="btn btn-ghost text-neg text-xs">
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+function renderExpression(s: Signal): string {
+  const left = `${s.indicator}${formatParams(s.params)}`;
+  let right = '?';
+  if (s.compareTo?.type === 'value') right = String(s.compareTo.value);
+  else if (s.compareTo?.type === 'indicator') right = `${s.compareTo.indicator}${formatParams(s.compareTo.params)}`;
+  else if (s.compareTo?.type === 'price') right = `price.${s.compareTo.source}`;
+  return `${left} ${s.condition} ${right}`;
+}
+
+function formatParams(p: Record<string, number> | undefined): string {
+  if (!p) return '';
+  const entries = Object.entries(p).filter(([_, v]) => v !== undefined && v !== null);
+  if (entries.length === 0) return '';
+  return '(' + entries.map(([k, v]) => `${k}=${v}`).join(', ') + ')';
 }

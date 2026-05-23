@@ -49,11 +49,20 @@ export class BracketManager {
     const strategy = await StrategyModel.findById(order.strategyId).lean();
     if (!strategy) return;
     const exit = strategy.exit;
-    if (!exit) return;
 
     const oppositeSide = order.side === 'BUY' ? 'SELL' : 'BUY';
     const entryPrice = order.averagePrice ?? order.price ?? 0;
     if (!entryPrice) return;
+
+    // Determine if this fill belongs to a specific leg. Strategy-runtime tags entry orders as
+    // `${strategyId}-${legId}` — we extract the legId so we can prefer that leg's
+    // individualSL/individualTP over the strategy-level fallback.
+    const legId = extractLegId(order.tag ?? undefined, String(strategy._id));
+    const leg = legId ? strategy.entry?.legs?.find((l) => l.legId === legId) : undefined;
+    const sl = leg?.individualSL ?? exit?.stopLoss;
+    const tp = leg?.individualTP ?? exit?.target;
+
+    if (!sl && !tp) return;
 
     const childCtx: OrderContext = {
       userId: String(order.userId),
@@ -65,11 +74,11 @@ export class BracketManager {
 
     const children: string[] = [];
 
-    if (exit.stopLoss && exit.stopLoss.value && exit.stopLoss.type) {
+    if (sl && sl.value && sl.type) {
       const slPrice = slPriceFor(
         entryPrice,
-        exit.stopLoss.value,
-        exit.stopLoss.type as 'percent' | 'points' | 'rupees',
+        sl.value,
+        sl.type as 'percent' | 'points' | 'rupees',
         order.side as 'BUY' | 'SELL',
       );
       try {
@@ -93,11 +102,11 @@ export class BracketManager {
       }
     }
 
-    if (exit.target && exit.target.value && exit.target.type) {
+    if (tp && tp.value && tp.type) {
       const tpPrice = tpPriceFor(
         entryPrice,
-        exit.target.value,
-        exit.target.type as 'percent' | 'points' | 'rupees',
+        tp.value,
+        tp.type as 'percent' | 'points' | 'rupees',
         order.side as 'BUY' | 'SELL',
       );
       try {
@@ -152,6 +161,13 @@ export class BracketManager {
       }
     }
   }
+}
+
+function extractLegId(tag: string | undefined, strategyId: string): string | undefined {
+  if (!tag) return undefined;
+  const prefix = `${strategyId}-`;
+  if (!tag.startsWith(prefix)) return undefined;
+  return tag.slice(prefix.length);
 }
 
 function slPriceFor(

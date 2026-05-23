@@ -6,3 +6,4 @@ export * from './angelone/AngelOneAdapter.js';
 export * from './upstox/UpstoxAdapter.js';
 export * from './dhan/DhanAdapter.js';
 export * from './fyers/FyersAdapter.js';
+export * from './motilal/MotilalAdapter.js';

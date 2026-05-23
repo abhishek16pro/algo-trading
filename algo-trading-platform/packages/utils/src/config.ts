@@ -55,8 +55,17 @@ const Env = z.object({
   PORT_SIGNAL: z.coerce.number().int().positive().default(4004),
 
   DEFAULT_BROKER: z
-    .enum(['mock', 'zerodha', 'angelone', 'upstox', 'dhan', 'fyers', 'iifl'])
+    .enum(['mock', 'zerodha', 'angelone', 'upstox', 'dhan', 'fyers', 'iifl', 'motilal'])
     .default('mock'),
+
+  /**
+   * The admin broker account ID that the market-data-service uses to subscribe live indices.
+   * If unset, market-data falls back to any active broker account it finds in Mongo.
+   * Set this to your Motilal account's _id once you connect it via the /brokers UI.
+   */
+  ADMIN_BROKER_ACCOUNT_ID: z.string().optional(),
+
+  MOTILAL_ENV: z.enum(['prod', 'uat']).default('prod'),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 });

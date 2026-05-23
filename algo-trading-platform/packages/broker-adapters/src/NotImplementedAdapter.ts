@@ -1,6 +1,7 @@
 import type {
   BrokerCredentials,
   BrokerLoginResult,
+  BrokerProfile,
   Candle,
   Funds,
   NormalizedHolding,
@@ -51,6 +52,9 @@ export abstract class NotImplementedAdapter extends BaseAdapter implements IBrok
   }
   async isTokenValid(_creds: BrokerCredentials): Promise<boolean> {
     return this.unsupported('isTokenValid');
+  }
+  async getProfile(): Promise<BrokerProfile> {
+    return this.unsupported('getProfile');
   }
   async fetchInstruments(): Promise<NormalizedInstrument[]> {
     return this.unsupported('fetchInstruments');

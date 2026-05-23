@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   BrokerCredentials,
   BrokerLoginResult,
+  BrokerProfile,
   Candle,
   Funds,
   NormalizedHolding,
@@ -58,6 +59,18 @@ export class MockBrokerAdapter extends BaseAdapter implements IBrokerAdapter {
   }
   async isTokenValid(_creds: BrokerCredentials) {
     return true;
+  }
+  async getProfile(): Promise<BrokerProfile> {
+    return {
+      clientCode: 'MOCK001',
+      name: 'Mock Demo User',
+      email: 'mock@algotrade.local',
+      exchanges: ['NSE', 'BSE', 'NFO', 'BFO'],
+      products: ['MIS', 'NRML', 'CNC'],
+      segments: ['EQ', 'F&O', 'CDS'],
+      userType: 'individual',
+      broker: 'mock',
+    };
   }
 
   // ------------------------------------------------------------------ Instruments

@@ -6,6 +6,7 @@ import { AngelOneAdapter } from './angelone/AngelOneAdapter.js';
 import { UpstoxAdapter } from './upstox/UpstoxAdapter.js';
 import { DhanAdapter } from './dhan/DhanAdapter.js';
 import { FyersAdapter } from './fyers/FyersAdapter.js';
+import { MotilalAdapter } from './motilal/MotilalAdapter.js';
 
 /**
  * The single entry point for instantiating broker adapters. The rest of the system MUST go
@@ -25,6 +26,8 @@ export function createAdapter(broker: BrokerId, opts: AdapterFactoryOptions): IB
       return new DhanAdapter(opts);
     case 'fyers':
       return new FyersAdapter(opts);
+    case 'motilal':
+      return new MotilalAdapter(opts);
     case 'iifl':
       throw new Error('IIFL adapter not yet implemented');
     default: {

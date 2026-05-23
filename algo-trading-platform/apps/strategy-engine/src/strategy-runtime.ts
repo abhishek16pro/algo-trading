@@ -20,6 +20,15 @@ import { placeOrderViaEngine } from './execution-client.js';
  * Order placement is delegated to the execution engine via Redis pub/sub (`exec:place`) so the
  * strategy process never holds broker connections.
  */
+/**
+ * How long a signal "stays true" after firing — used to evaluate AND/OR combinations across
+ * signals on different timeframes. After this many ms, we treat the signal as stale.
+ *
+ * AlgoTest behavior: signals on the same candle bar count together. 60s is a safe window
+ * for 1m–5m strategies; bump if you mix higher timeframes.
+ */
+const SIGNAL_FRESHNESS_MS = 60_000;
+
 export class StrategyRuntime {
   private tickHandlers = new Map<string, (t: Tick) => void>();
   private signalHandlers = new Map<string, (s: SignalEvent) => void>();
@@ -27,6 +36,10 @@ export class StrategyRuntime {
   private squareOffCron: Cron | undefined;
   private entriesPlaced = 0;
   private paused = false;
+  /** signalId → ts when it last fired. Used to evaluate AND/OR. */
+  private lastFiredAt = new Map<string, number>();
+  /** Lock to prevent double-firing when multiple signals fire at the same instant. */
+  private entryInFlight = false;
 
   constructor(
     private readonly strategy: StrategyDoc,
@@ -137,20 +150,58 @@ export class StrategyRuntime {
     });
   }
 
-  private async onSignal(_sig: SignalEvent): Promise<void> {
+  private async onSignal(sig: SignalEvent): Promise<void> {
     if (this.paused) return;
     if (!isMarketHoursNSE(new Date())) return;
     if (this.strategy.entry?.triggerType !== 'signal') return;
     if (this.entriesPlaced >= (this.strategy.risk?.maxPositions ?? 1)) return;
+    if (this.entryInFlight) return;
 
-    // V1: simple single-leg directional entry on signal
+    // 1. Mark this signal as freshly fired.
+    this.lastFiredAt.set(sig.signalId, Date.now());
+
+    // 2. Evaluate the strategy's signal expression. The first SignalRef's `logic` field acts as
+    //    the global combinator (AND/OR). AlgoTest's UI keeps it simple — either ALL signals must
+    //    be true, or ANY must be true.
+    const refs = this.strategy.entry.signals ?? [];
+    if (refs.length === 0) return;
+    const combinator = (refs[0]?.logic ?? 'AND') as 'AND' | 'OR';
+    const cutoff = Date.now() - SIGNAL_FRESHNESS_MS;
+    const fresh = (id: string): boolean => (this.lastFiredAt.get(id) ?? 0) >= cutoff;
+    const satisfied =
+      combinator === 'AND'
+        ? refs.every((r) => r.signalId && fresh(r.signalId))
+        : refs.some((r) => r.signalId && fresh(r.signalId));
+
+    if (!satisfied) return;
+
+    // 3. Fire entry. If legs are configured, treat as options multi-leg. Otherwise single FUT/IDX.
+    this.entryInFlight = true;
+    try {
+      const legs = this.strategy.entry.legs ?? [];
+      if (this.strategy.segment === 'options' && legs.length > 0) {
+        await this.fireLegs(legs as LegConfig[]);
+      } else {
+        await this.fireSingleLeg();
+      }
+      // Reset truth map so the next entry needs a fresh round of signal fires.
+      this.lastFiredAt.clear();
+    } finally {
+      this.entryInFlight = false;
+    }
+  }
+
+  private async fireSingleLeg(): Promise<void> {
     const ins = await InstrumentModel.findOne({
       underlying: this.strategy.underlying,
       instrumentType: this.strategy.segment === 'futures' ? 'FUT' : 'IDX',
     })
       .sort({ expiry: 1 })
       .lean();
-    if (!ins) return;
+    if (!ins) {
+      this.deps.log.warn({ underlying: this.strategy.underlying }, 'no instrument for single-leg entry');
+      return;
+    }
     const lots = (this.strategy.risk?.lotMultiplier ?? 1) * (ins.lotSize ?? 1);
     const req: NormalizedOrderRequest = {
       tradingsymbol: ins.tradingsymbol,
@@ -158,29 +209,44 @@ export class StrategyRuntime {
       side: 'BUY',
       quantity: lots,
       orderType: 'MARKET',
-      product: 'MIS',
+      product: this.strategy.segment === 'futures' ? 'NRML' : 'MIS',
       validity: 'DAY',
       tag: `${String(this.strategy._id)}-entry`,
     };
     await this.placeOrder(req);
+    this.entriesPlaced += 1;
+  }
+
+  private async fireLegs(legs: LegConfig[]): Promise<void> {
+    for (const leg of legs) {
+      try {
+        const placement = await selectOptionLeg(this.deps.redis, this.strategy, leg);
+        if (!placement) {
+          this.deps.log.warn({ legId: leg.legId }, 'leg resolution returned no contract');
+          continue;
+        }
+        await this.placeOrder(placement);
+        this.entriesPlaced += 1;
+      } catch (err) {
+        this.deps.log.error({ err, legId: leg.legId }, 'leg placement failed');
+      }
+    }
   }
 
   private async onEntryTime(): Promise<void> {
     if (this.paused) return;
     if (!isMarketHoursNSE(new Date())) return;
-
-    const legs = this.strategy.entry?.legs ?? [];
-    if (legs.length === 0) return;
-
-    for (const leg of legs as LegConfig[]) {
-      try {
-        const placement = await selectOptionLeg(this.deps.redis, this.strategy, leg);
-        if (!placement) continue;
-        await this.placeOrder(placement);
-        this.entriesPlaced += 1;
-      } catch (err) {
-        this.deps.log.error({ err, leg: leg.legId }, 'leg placement failed');
+    if (this.entryInFlight) return;
+    this.entryInFlight = true;
+    try {
+      const legs = this.strategy.entry?.legs ?? [];
+      if (legs.length === 0) {
+        await this.fireSingleLeg();
+      } else {
+        await this.fireLegs(legs as LegConfig[]);
       }
+    } finally {
+      this.entryInFlight = false;
     }
   }
 

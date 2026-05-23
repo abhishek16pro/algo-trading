@@ -8,6 +8,7 @@ export const BrokerIdSchema = z.enum([
   'dhan',
   'fyers',
   'iifl',
+  'motilal',
 ]);
 export type BrokerId = z.infer<typeof BrokerIdSchema>;
 
@@ -20,8 +21,22 @@ export const BrokerCredentialsSchema = z.object({
   accessToken: z.string().optional(),
   refreshToken: z.string().optional(),
   accessTokenExpiry: z.coerce.date().optional(),
+  // Motilal-specific
+  vendorInfo: z.string().optional(),
+  twoFA: z.string().optional(), // PAN or DOB "DD/MM/YYYY"
 });
 export type BrokerCredentials = z.infer<typeof BrokerCredentialsSchema>;
+
+export type BrokerProfile = {
+  clientCode: string;
+  name?: string;
+  email?: string;
+  exchanges?: string[];
+  products?: string[];
+  segments?: string[];
+  userType?: string;
+  broker: BrokerId;
+};
 
 export const BrokerCapabilitiesSchema = z.object({
   canTradeEquity: z.boolean().default(true),

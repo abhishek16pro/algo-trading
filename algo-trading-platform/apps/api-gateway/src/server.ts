@@ -16,6 +16,7 @@ import { positionRoutes } from './routes/positions.js';
 import { backtestRoutes } from './routes/backtests.js';
 import { marketDataRoutes } from './routes/market-data.js';
 import { authPlugin } from './plugins/auth.js';
+import { swaggerPlugin } from './plugins/swagger.js';
 import { healthRoutes } from './routes/health.js';
 
 export type AppContext = {
@@ -51,6 +52,9 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
 
   // Decorate so handlers can grab the shared context off `app.ctx`.
   app.decorate('ctx', ctx);
+
+  // Swagger MUST be registered before route plugins so it can capture their schemas.
+  await app.register(swaggerPlugin);
 
   await app.register(authPlugin, { jwtSecret: ctx.cfg.JWT_ACCESS_SECRET, refreshSecret: ctx.cfg.JWT_REFRESH_SECRET });
 
