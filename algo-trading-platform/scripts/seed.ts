@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     log.info({ count: mocks.length }, 'instruments seeded');
   }
 
-  // 2. Demo user
+  // 2. Demo user (also platform admin)
   const email = 'demo@algotrade.local';
   let user = await UserModel.findOne({ email });
   if (!user) {
@@ -42,8 +42,13 @@ async function main(): Promise<void> {
       email,
       passwordHash: await bcrypt.hash('demo1234', 12),
       name: 'Demo User',
+      role: 'admin',
     });
-    log.info({ email }, 'demo user created (password: demo1234)');
+    log.info({ email }, 'demo admin user created (password: demo1234)');
+  } else if ((user as unknown as { role?: string }).role !== 'admin') {
+    (user as unknown as { role: string }).role = 'admin';
+    await user.save();
+    log.info({ email }, 'promoted existing demo user to admin');
   }
 
   // 3. Mock broker account

@@ -1,6 +1,6 @@
 import { connectMongo } from '@algo/db';
 import { createRedis, RedisPubSub } from '@algo/redis-client';
-import { createLogger, loadConfig } from '@algo/utils';
+import { createLogger, loadConfig, startHeartbeat } from '@algo/utils';
 import { Supervisor } from './supervisor.js';
 
 async function main(): Promise<void> {
@@ -15,6 +15,8 @@ async function main(): Promise<void> {
 
   const supervisor = new Supervisor({ log, redis: cmd, pubsub });
   await supervisor.start();
+
+  startHeartbeat(cmd, 'strategy-engine', log);
 
   const shutdown = async (sig: string): Promise<void> => {
     log.warn({ sig }, 'shutdown requested');

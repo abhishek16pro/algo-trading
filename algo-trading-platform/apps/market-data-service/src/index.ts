@@ -1,7 +1,7 @@
 import { connectMongo, BrokerAccountModel, InstrumentModel } from '@algo/db';
 import { createRedis, RedisPubSub } from '@algo/redis-client';
 import { channels, type BrokerCredentials, type BrokerId } from '@algo/shared-types';
-import { createLogger, decrypt, loadConfig } from '@algo/utils';
+import { createLogger, decrypt, loadConfig, startHeartbeat } from '@algo/utils';
 import { MarketDataService } from './service.js';
 
 /** Indices the platform always streams once the admin broker is up. */
@@ -20,55 +20,76 @@ async function main(): Promise<void> {
 
   const svc = new MarketDataService({ log, redis: cmd, pubsub, defaultBroker: cfg.DEFAULT_BROKER });
 
-  // 1. Bootstrap broker connections. If ADMIN_BROKER_ACCOUNT_ID is set, prefer that one.
-  let adminAccountId: string | undefined;
-  if (cfg.ADMIN_BROKER_ACCOUNT_ID) {
-    const admin = await BrokerAccountModel.findById(cfg.ADMIN_BROKER_ACCOUNT_ID).lean();
+  // ARCHITECTURE: market-data-service is the SINGLE source of broker tick streams for the entire
+  // platform. It connects to exactly ONE broker — the admin/platform broker — and fans the ticks
+  // out via Redis pub/sub. Per-user brokers are NEVER attached here; those live in the execution-
+  // engine and are only touched when that user actually places an order.
+  //
+  // Why: if every user's broker were attached, we'd open N WebSockets and receive N duplicate
+  // tick streams for the same instruments — corrupting candle volume, paper sim, and signals.
+  let attached = false;
+
+  // Prefer DB-driven choice (admin clicked "Set as platform market-data" in /admin UI), fall back
+  // to env-driven ADMIN_BROKER_ACCOUNT_ID, fall back to mock in dev.
+  const dbPrimary = await BrokerAccountModel.findOne({
+    isPlatformPrimary: true,
+    isActive: true,
+    deletedAt: { $exists: false },
+  }).lean();
+  const adminId = dbPrimary ? String(dbPrimary._id) : cfg.ADMIN_BROKER_ACCOUNT_ID;
+
+  if (adminId) {
+    const admin = dbPrimary ?? (await BrokerAccountModel.findById(adminId).lean());
     if (admin && admin.isActive) {
-      adminAccountId = String(admin._id);
       const creds = decryptCreds(admin.credentials ?? {}, cfg.BROKER_ENC_KEY);
       try {
         await svc.attachBroker({
-          brokerAccountId: adminAccountId,
+          brokerAccountId: String(admin._id),
           broker: admin.broker as BrokerId,
           credentials: creds,
         });
-        log.info({ broker: admin.broker, accountId: adminAccountId }, 'admin broker attached');
+        log.info(
+          {
+            broker: admin.broker,
+            accountId: String(admin._id),
+            userId: String(admin.userId),
+            source: dbPrimary ? 'db.isPlatformPrimary' : 'env.ADMIN_BROKER_ACCOUNT_ID',
+          },
+          'admin broker attached — sole market-data source',
+        );
+        attached = true;
       } catch (err) {
-        log.error({ err }, 'failed to attach admin broker — falling back');
+        log.error({ err }, 'failed to attach admin broker');
       }
     } else {
-      log.warn({ ADMIN_BROKER_ACCOUNT_ID: cfg.ADMIN_BROKER_ACCOUNT_ID }, 'admin broker not found or inactive');
+      log.error(
+        { ADMIN_BROKER_ACCOUNT_ID: cfg.ADMIN_BROKER_ACCOUNT_ID },
+        'ADMIN_BROKER_ACCOUNT_ID set but the account is missing or inactive in Mongo',
+      );
     }
   }
 
-  // 2. Attach remaining active accounts (these are used for per-user order placement).
-  const others = await BrokerAccountModel.find({
-    isActive: true,
-    deletedAt: { $exists: false },
-    _id: { $ne: adminAccountId },
-  }).lean();
-  log.info({ count: others.length }, 'attaching additional broker accounts');
-  for (const acc of others) {
-    const creds = decryptCreds(acc.credentials ?? {}, cfg.BROKER_ENC_KEY);
-    try {
-      await svc.attachBroker({
-        brokerAccountId: String(acc._id),
-        broker: acc.broker as BrokerId,
-        credentials: creds,
-      });
-    } catch (err) {
-      log.warn({ err, broker: acc.broker }, 'failed to attach broker — skipping');
-    }
-  }
-
-  // 3. Dev fallback: spin up a mock if nothing else attached.
-  if (!adminAccountId && others.length === 0 && cfg.DEFAULT_BROKER === 'mock') {
-    log.info('no broker accounts in DB — attaching dev mock broker');
+  // Dev fallback: if no admin broker is configured, spin up the mock so the stack still runs.
+  if (!attached && cfg.DEFAULT_BROKER === 'mock') {
+    log.warn(
+      'No ADMIN_BROKER_ACCOUNT_ID configured — falling back to mock broker for dev. ' +
+        'Set ADMIN_BROKER_ACCOUNT_ID in .env to use real broker market data.',
+    );
     await svc.attachBroker({ brokerAccountId: 'dev-mock', broker: 'mock', credentials: {} });
+    attached = true;
+  }
+
+  if (!attached) {
+    log.fatal(
+      'No market data source. Set ADMIN_BROKER_ACCOUNT_ID in .env to a connected broker account, ' +
+        'or set DEFAULT_BROKER=mock for dev.',
+    );
+    process.exit(1);
   }
 
   await svc.start();
+
+  startHeartbeat(cmd, 'market-data', log);
 
   // 4. Always-on index subscriptions (admin broker is the authoritative tick source).
   //    We resolve the canonical token for each index from the contract master and publish a

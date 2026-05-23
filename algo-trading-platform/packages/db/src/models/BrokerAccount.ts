@@ -19,9 +19,18 @@ const brokerAccountSchema = new Schema(
       accessToken: { type: String },
       refreshToken: { type: String },
       accessTokenExpiry: { type: Date },
+      // Motilal-specific (also encrypted)
+      vendorInfo: { type: String },
+      twoFA: { type: String },
     },
     isActive: { type: Boolean, default: true },
     isPrimary: { type: Boolean, default: false },
+    /**
+     * Platform-wide market-data source. Exactly ONE account should have this true at a time.
+     * The market-data-service queries for this on boot and connects only to that broker.
+     * Set via the /admin UI; falls back to ADMIN_BROKER_ACCOUNT_ID env var if no DB pick.
+     */
+    isPlatformPrimary: { type: Boolean, default: false, index: true },
     capabilities: {
       canTradeEquity: { type: Boolean, default: true },
       canTradeFNO: { type: Boolean, default: true },

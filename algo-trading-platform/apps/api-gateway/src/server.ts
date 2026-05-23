@@ -16,7 +16,9 @@ import { positionRoutes } from './routes/positions.js';
 import { backtestRoutes } from './routes/backtests.js';
 import { marketDataRoutes } from './routes/market-data.js';
 import { authPlugin } from './plugins/auth.js';
+import { adminGuardPlugin } from './plugins/admin-guard.js';
 import { swaggerPlugin } from './plugins/swagger.js';
+import { adminRoutes } from './routes/admin.js';
 import { healthRoutes } from './routes/health.js';
 
 export type AppContext = {
@@ -57,6 +59,7 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(swaggerPlugin);
 
   await app.register(authPlugin, { jwtSecret: ctx.cfg.JWT_ACCESS_SECRET, refreshSecret: ctx.cfg.JWT_REFRESH_SECRET });
+  await app.register(adminGuardPlugin);
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof AppError) {
@@ -84,6 +87,7 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(positionRoutes, { prefix: '/api/v1/positions' });
   await app.register(backtestRoutes, { prefix: '/api/v1/backtests' });
   await app.register(marketDataRoutes, { prefix: '/api/v1/md' });
+  await app.register(adminRoutes, { prefix: '/api/v1/admin' });
 
   return app;
 }

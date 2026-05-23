@@ -168,9 +168,21 @@ export default function BrokersPage() {
           </div>
         )}
 
-        <label className="flex items-center gap-2 mt-3">
-          <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />
-          <span className="text-sm">Set as primary (used for market-data subscriptions across the platform)</span>
+        <label className="flex items-start gap-2 mt-3">
+          <input
+            type="checkbox"
+            checked={isPrimary}
+            onChange={(e) => setIsPrimary(e.target.checked)}
+            className="mt-1"
+          />
+          <span className="text-sm">
+            Set as my primary broker
+            <span className="block text-xs text-ink-muted mt-0.5">
+              Strategies you create without choosing a broker will route ORDERS here. This does
+              NOT control market data — platform-wide market data comes from a single admin-
+              configured broker (one connection for everyone, not per-user).
+            </span>
+          </span>
         </label>
 
         {create.isError && (

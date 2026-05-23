@@ -1,6 +1,6 @@
 import { connectMongo } from '@algo/db';
 import { createRedis, RedisPubSub } from '@algo/redis-client';
-import { createLogger, loadConfig } from '@algo/utils';
+import { createLogger, loadConfig, startHeartbeat } from '@algo/utils';
 import { buildServer } from './server.js';
 import { attachSocket } from './socket.js';
 
@@ -20,6 +20,8 @@ async function main(): Promise<void> {
   const port = cfg.PORT_API;
   await app.listen({ port, host: '0.0.0.0' });
   log.info({ port }, 'api-gateway listening');
+
+  startHeartbeat(cmd, 'api-gateway', log);
 
   const shutdown = async (sig: string): Promise<void> => {
     log.warn({ sig }, 'shutdown requested');

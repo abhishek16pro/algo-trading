@@ -19,6 +19,7 @@ const NAV = [
   { href: '/instruments', label: 'Instruments' },
   { href: '/settings', label: 'Settings' },
 ];
+const ADMIN_NAV = [{ href: '/admin', label: 'Admin' }];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -48,6 +49,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {item.label}
           </Link>
         ))}
+        {(user as { role?: string } | null)?.role === 'admin' && (
+          <>
+            <div className="border-t border-white/5 my-3" />
+            {ADMIN_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  'block px-3 py-1.5 rounded-md text-sm',
+                  path?.startsWith(item.href)
+                    ? 'bg-brand/20 text-ink'
+                    : 'text-ink-muted hover:text-ink hover:bg-white/5',
+                )}
+              >
+                ⚙ {item.label}
+              </Link>
+            ))}
+          </>
+        )}
         <div className="border-t border-white/5 mt-6 pt-4 px-2 text-xs text-ink-muted">
           {user?.email}
           <button

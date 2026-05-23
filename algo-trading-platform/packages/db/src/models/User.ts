@@ -6,6 +6,7 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true },
     name: { type: String, required: true },
     phone: { type: String },
+    role: { type: String, enum: ['user', 'admin'], default: 'user', index: true },
     twoFactor: {
       enabled: { type: Boolean, default: false },
       secret: { type: String },

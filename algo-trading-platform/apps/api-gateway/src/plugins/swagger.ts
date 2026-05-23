@@ -66,6 +66,7 @@ const swaggerPluginImpl: FastifyPluginAsync = async (app: FastifyInstance) => {
         { name: 'backtests', description: 'Enqueue backtest, read results' },
         { name: 'market-data', description: 'Quotes from Redis + historical candles' },
         { name: 'health', description: 'Liveness + readiness' },
+        { name: 'admin', description: 'Service status, market-data control (admin role only)' },
       ],
     },
     hideUntagged: false,
@@ -95,5 +96,6 @@ function inferTag(url: string): string | null {
   if (url.startsWith('/api/v1/instruments')) return 'instruments';
   if (url.startsWith('/api/v1/backtests')) return 'backtests';
   if (url.startsWith('/api/v1/md')) return 'market-data';
+  if (url.startsWith('/api/v1/admin')) return 'admin';
   return null;
 }

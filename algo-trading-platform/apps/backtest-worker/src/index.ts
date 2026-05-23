@@ -1,7 +1,7 @@
 import { Worker, type Job } from 'bullmq';
 import { Redis as IORedis } from 'ioredis';
 import { connectMongo } from '@algo/db';
-import { createLogger, loadConfig } from '@algo/utils';
+import { createLogger, loadConfig, startHeartbeat } from '@algo/utils';
 import { runBacktest } from './run-backtest.js';
 
 async function main(): Promise<void> {
@@ -28,6 +28,8 @@ async function main(): Promise<void> {
   );
 
   log.info('backtest-worker listening on queue backtest-run');
+
+  startHeartbeat(connection, 'backtest-worker', log);
 
   const shutdown = async (sig: string): Promise<void> => {
     log.warn({ sig }, 'shutdown requested');

@@ -72,6 +72,23 @@ export class MarketDataService {
   async attachBroker(opts: AttachOptions): Promise<void> {
     if (this.connections.has(opts.brokerAccountId)) return;
 
+    // Singleton guard: market-data-service must only ever hold ONE upstream connection.
+    // If a second attach is attempted, refuse — we don't want duplicate tick streams.
+    if (this.connections.size > 0) {
+      const existing = Array.from(this.connections.values())[0]!;
+      this.deps.log.error(
+        {
+          incoming: { broker: opts.broker, brokerAccountId: opts.brokerAccountId },
+          existing: { broker: existing.broker, brokerAccountId: existing.brokerAccountId },
+        },
+        'refusing to attach second broker — market-data is a singleton tick source',
+      );
+      throw new Error(
+        `market-data-service already has a broker attached (${existing.broker}). ` +
+          `Only one market-data source is allowed.`,
+      );
+    }
+
     const adapter = createAdapter(opts.broker, {
       brokerAccountId: opts.brokerAccountId,
       credentials: opts.credentials,

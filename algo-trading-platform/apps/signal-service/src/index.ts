@@ -1,6 +1,6 @@
 import { connectMongo } from '@algo/db';
 import { createRedis, RedisPubSub } from '@algo/redis-client';
-import { createLogger, loadConfig } from '@algo/utils';
+import { createLogger, loadConfig, startHeartbeat } from '@algo/utils';
 import { SignalService } from './service.js';
 
 async function main(): Promise<void> {
@@ -10,10 +10,13 @@ async function main(): Promise<void> {
   await connectMongo(cfg.MONGO_URI, log);
   const pub = createRedis(cfg.REDIS_URI, log);
   const sub = createRedis(cfg.REDIS_URI, log);
+  const cmd = createRedis(cfg.REDIS_URI, log);
   const pubsub = new RedisPubSub(pub, sub, log);
 
   const svc = new SignalService({ log, pubsub });
   await svc.start();
+
+  startHeartbeat(cmd, 'signal-service', log);
 
   const shutdown = async (sig: string): Promise<void> => {
     log.warn({ sig }, 'shutdown requested');

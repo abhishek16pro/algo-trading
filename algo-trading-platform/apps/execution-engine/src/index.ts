@@ -1,6 +1,6 @@
 import { connectMongo } from '@algo/db';
 import { createRedis, RedisPubSub } from '@algo/redis-client';
-import { createLogger, loadConfig } from '@algo/utils';
+import { createLogger, loadConfig, startHeartbeat } from '@algo/utils';
 import { ExecutionEngine } from './engine.js';
 import { AdapterRegistry } from './adapter-registry.js';
 import { ExecListener } from './exec-listener.js';
@@ -22,6 +22,8 @@ async function main(): Promise<void> {
 
   const listener = new ExecListener(log, pubsub, engine);
   await listener.start();
+
+  startHeartbeat(cmd, 'execution-engine', log);
 
   const shutdown = async (sig: string): Promise<void> => {
     log.warn({ sig }, 'shutdown requested');
