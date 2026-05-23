@@ -6,7 +6,7 @@ const brokerAccountSchema = new Schema(
     broker: {
       type: String,
       required: true,
-      enum: ['mock', 'zerodha', 'angelone', 'upstox', 'dhan', 'fyers', 'iifl'],
+      enum: ['mock', 'zerodha', 'angelone', 'upstox', 'dhan', 'fyers', 'iifl', 'motilal'],
     },
     label: { type: String, required: true },
     // Each field below stores AES-256-GCM ciphertext (base64). Plaintext NEVER persisted.
