@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  min-height: 100vh;
+  background: theme('colors.bg.DEFAULT');
+  color: theme('colors.ink.DEFAULT');
+  font-family: theme('fontFamily.sans');
+}
+
+.card {
+  @apply bg-bg-card border border-white/5 rounded-xl shadow-lg shadow-black/20;
+}
+
+.btn {
+  @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors;
+}
+.btn-primary {
+  @apply bg-brand hover:bg-brand-hover text-white;
+}
+.btn-ghost {
+  @apply text-ink-muted hover:text-ink hover:bg-white/5;
+}
+
+.pnl-pos { @apply text-pos; }
+.pnl-neg { @apply text-neg; }
