@@ -1,0 +1,10 @@
+{
+  "trades": 38,
+  "starting_equity": 1000000,
+  "final_equity": 932330.9613138346,
+  "total_return": -0.06766903868616536,
+  "sharpe_daily_ann": -5.694085611863659,
+  "max_drawdown": -0.06911793634496118,
+  "win_rate": 0.21052631578947367,
+  "avg_trade_pnl": -1780.764175951716
+}

@@ -1,0 +1,112 @@
+seed: 42
+
+# --- Data collection (yfinance) ---------------------------------------------
+# Run with:  python -m src.cli fetch --config configs/config.yaml
+# Edit stocks/indices freely; the collector accepts both. Yahoo intraday limits
+# apply: 1m -> last 7 days, 2m/5m/15m/30m/90m -> last 60 days, 60m -> 730 days.
+fetch:
+  stocks:
+    - RELIANCE
+    - INFY
+    - TCS
+    - HDFCBANK
+    - ICICIBANK
+    - SBIN
+    - ITC
+  # Map friendly_name -> Yahoo index ticker. Leave the value blank/null to use
+  # the built-in default if the name is recognized (NIFTY50, BANKNIFTY, ...).
+  indices:
+    NIFTY50: "^NSEI"
+    BANKNIFTY: "^NSEBANK"
+  interval: "5m"
+  period: "60d"
+  start: null
+  end: null
+  output_csv: data/nse_intraday.csv
+  append: true
+  filter_session: true
+  session_start: "09:15"
+  session_end: "15:30"
+  retries: 2
+  sleep_seconds: 0.5
+
+data:
+  # The pipeline (preprocess/train/backtest/report) reads from this CSV.
+  csv_path: data/nse_intraday.csv
+  # Restrict to a subset for training. Empty list = use everything in the CSV.
+  # You can mix stocks and indices here.
+  symbols: []
+  timeframe: 5min
+  session_start: 09:15
+  session_end: '15:30'
+features:
+  return_lags:
+  - 1
+  - 5
+  - 15
+  vol_window: 20
+  atr_window: 14
+  rsi_window: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  ma_windows:
+  - 10
+  - 20
+  - 50
+  volume_z_window: 50
+labeling:
+  method: barrier
+  horizon: 12
+  take_profit_atr: 1.5
+  stop_loss_atr: 1.0
+splits:
+  # NOTE: yfinance gives at most ~60 trading days of 5-min bars, so these
+  # defaults are tuned to that. If you bring your own deeper history,
+  # raise train_days for more stable models.
+  scheme: expanding
+  train_days: 25
+  val_days: 5
+  test_days: 5
+  step_days: 5
+  min_train_days: 15
+model:
+  name: gbm
+  calibrate: true
+  calibration_method: isotonic
+  logreg:
+    C: 1.0
+    max_iter: 1000
+  gbm:
+    n_estimators: 200
+    max_depth: 3
+    learning_rate: 0.05
+    subsample: 0.8
+  xgb:
+    n_estimators: 400
+    max_depth: 4
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_lambda: 1.0
+    tree_method: hist
+strategy:
+  entry_threshold: 0.58
+  exit_threshold: 0.48
+  time_exit_bars: 12
+  take_profit_atr: 1.5
+  stop_loss_atr: 1.0
+risk:
+  starting_equity: 1000000
+  risk_per_trade: 0.005
+  max_positions_per_symbol: 1
+  max_concurrent_positions: 5
+  max_daily_loss_pct: 0.02
+costs:
+  commission_per_trade: 20.0
+  spread_bps: 3.0
+  slippage_bps: 3.0
+output:
+  artifacts_dir: artifacts
+  reports_dir: reports
+  report_format: markdown

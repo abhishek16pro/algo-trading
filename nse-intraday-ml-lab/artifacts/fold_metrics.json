@@ -1,0 +1,167 @@
+[
+  {
+    "fold_id": 0,
+    "train_start": "2026-02-24 00:00:00",
+    "train_end": "2026-04-02 23:59:59",
+    "val_start": "2026-04-06 00:00:00",
+    "val_end": "2026-04-10 23:59:59",
+    "test_start": "2026-04-13 00:00:00",
+    "test_end": "2026-04-20 23:59:59",
+    "n_train": 12782,
+    "n_val": 2625,
+    "n_test": 2212,
+    "auc": 0.5219493322311445,
+    "accuracy": 0.6188969258589512,
+    "confusion_matrix": [
+      [
+        1369,
+        0
+      ],
+      [
+        843,
+        0
+      ]
+    ],
+    "trades": 0,
+    "final_equity": 1000000.0,
+    "total_return": 0.0,
+    "sharpe_daily_ann": 0.0,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0,
+    "avg_trade_pnl": 0.0,
+    "profit_factor": 0.0,
+    "turnover_inr": 0.0
+  },
+  {
+    "fold_id": 1,
+    "train_start": "2026-02-24 00:00:00",
+    "train_end": "2026-04-10 23:59:59",
+    "val_start": "2026-04-13 00:00:00",
+    "val_end": "2026-04-20 23:59:59",
+    "test_start": "2026-04-21 00:00:00",
+    "test_end": "2026-04-27 23:59:59",
+    "n_train": 15407,
+    "n_val": 2212,
+    "n_test": 2625,
+    "auc": 0.5073527379942468,
+    "accuracy": 0.6998095238095238,
+    "confusion_matrix": [
+      [
+        1837,
+        0
+      ],
+      [
+        788,
+        0
+      ]
+    ],
+    "trades": 0,
+    "final_equity": 1000000.0,
+    "total_return": 0.0,
+    "sharpe_daily_ann": 0.0,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0,
+    "avg_trade_pnl": 0.0,
+    "profit_factor": 0.0,
+    "turnover_inr": 0.0
+  },
+  {
+    "fold_id": 2,
+    "train_start": "2026-02-24 00:00:00",
+    "train_end": "2026-04-20 23:59:59",
+    "val_start": "2026-04-21 00:00:00",
+    "val_end": "2026-04-27 23:59:59",
+    "test_start": "2026-04-28 00:00:00",
+    "test_end": "2026-05-05 23:59:59",
+    "n_train": 17619,
+    "n_val": 2625,
+    "n_test": 2625,
+    "auc": 0.5314889083433235,
+    "accuracy": 0.6685714285714286,
+    "confusion_matrix": [
+      [
+        1754,
+        7
+      ],
+      [
+        863,
+        1
+      ]
+    ],
+    "trades": 0,
+    "final_equity": 1000000.0,
+    "total_return": 0.0,
+    "sharpe_daily_ann": 0.0,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0,
+    "avg_trade_pnl": 0.0,
+    "profit_factor": 0.0,
+    "turnover_inr": 0.0
+  },
+  {
+    "fold_id": 3,
+    "train_start": "2026-02-24 00:00:00",
+    "train_end": "2026-04-27 23:59:59",
+    "val_start": "2026-04-28 00:00:00",
+    "val_end": "2026-05-05 23:59:59",
+    "test_start": "2026-05-06 00:00:00",
+    "test_end": "2026-05-12 23:59:59",
+    "n_train": 20244,
+    "n_val": 2625,
+    "n_test": 2625,
+    "auc": 0.5338960827049266,
+    "accuracy": 0.708952380952381,
+    "confusion_matrix": [
+      [
+        1838,
+        66
+      ],
+      [
+        698,
+        23
+      ]
+    ],
+    "trades": 38,
+    "final_equity": 932330.9613138346,
+    "total_return": -0.06766903868616536,
+    "sharpe_daily_ann": -18.686512159486856,
+    "max_drawdown": -0.06911793634496118,
+    "win_rate": 0.21052631578947367,
+    "avg_trade_pnl": -1780.764175951716,
+    "profit_factor": 0.11824282933299374,
+    "turnover_inr": 34629216.3453992
+  },
+  {
+    "fold_id": 4,
+    "train_start": "2026-02-24 00:00:00",
+    "train_end": "2026-05-05 23:59:59",
+    "val_start": "2026-05-06 00:00:00",
+    "val_end": "2026-05-12 23:59:59",
+    "test_start": "2026-05-13 00:00:00",
+    "test_end": "2026-05-19 23:59:59",
+    "n_train": 22869,
+    "n_val": 2625,
+    "n_test": 2625,
+    "auc": 0.48340068335633096,
+    "accuracy": 0.6948571428571428,
+    "confusion_matrix": [
+      [
+        1824,
+        0
+      ],
+      [
+        801,
+        0
+      ]
+    ],
+    "trades": 0,
+    "final_equity": 932330.9613138346,
+    "total_return": 0.0,
+    "sharpe_daily_ann": 0.0,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0,
+    "avg_trade_pnl": 0.0,
+    "profit_factor": 0.0,
+    "turnover_inr": 0.0
+  }
+]

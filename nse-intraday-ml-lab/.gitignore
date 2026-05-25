@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data files
+data/*.csv
+data/*.parquet
+data/*.feather
+data/*.h5
+data/*.hdf5
+!data/smoketest.csv
+
+# Artifacts & models
+artifacts/models/*.joblib
+artifacts/models/*.pkl
+artifacts/models/*.pickle
+
+# Reports & plots
+reports/plots/*.png
+reports/plots/*.jpg
+reports/plots/*.svg
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# mypy / pyright
+.mypy_cache/
+.pyright/
+pyrightconfig.json
+
+reports
